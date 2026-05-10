@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gremlin Oracle ✦ Gambit</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-bright: #3dd400;
+    --green-mid: #2a9900;
+    --green-dark: #1a5c00;
+    --green-deep: #0d2e00;
+    --yellow: #ffe600;
+    --yellow-dim: #ccb800;
+    --white: #e8e8e8;
+    --light-grey: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    letter-spacing: 0.08em;
+    color: var(--green-bright);
+    line-height: 1;
+    text-shadow: 3px 3px 0 #0d3a00, 0 0 40px rgba(61,212,0,0.2);
+  }
+
+ .subtitle {
+    font-size: 1.5rem;
+    letter-spacing: 0.3em;
+    color: #000000;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    margin-top: 0.3rem;
+  }  
+
+  .ball-container {
+    position: relative;
+    width: clamp(220px, 50vw, 300px);
+    height: clamp(220px, 50vw, 300px);
+  }
+
+  .ball {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%,
+      #5aee00 0%,
+      #3dd400 20%,
+      #28a000 50%,
+      #1a6600 75%,
+      #0d3300 100%
+    );
+    box-shadow:
+      inset -10px -10px 25px rgba(0,0,0,0.5),
+      inset 6px 6px 15px rgba(150,255,50,0.15),
+      0 0 40px rgba(61,212,0,0.2),
+      0 8px 30px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.1s;
+  }
+
+  /* Highlight gleam */
+  .ball::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 16%;
+    width: 28%;
+    height: 16%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-35deg);
+  }
+
+  /* Secondary gleam */
+  .ball::after {
+    content: '';
+    position: absolute;
+    top: 60%;
+    right: 12%;
+    width: 15%;
+    height: 8%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.06) 0%, transparent 100%);
+    border-radius: 50%;
+  }
+
+  .window {
+    width: 52%;
+    height: 52%;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, #0d2200 0%, #050f00 60%, #020800 100%);
+    border: 2px solid #1a3a00;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-shadow:
+      inset 0 0 25px rgba(0,0,0,0.95),
+      0 0 12px rgba(61,212,0,0.1);
+  }
+
+  .answer-text {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.45rem, 2vw, 0.7rem);
+    color: var(--yellow);
+    text-align: center;
+    line-height: 1.5;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    text-shadow: 0 0 8px rgba(255,230,0,0.6);
+    white-space: pre-line;
+  }
+
+  .answer-text.visible {
+    opacity: 1;
+  }
+
+  .prompt {
+    margin-top: 2.5rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    color: #000000;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .prompt span {
+    color: var(--green-bright);
+  }
+
+  .ball:active {
+    transform: scale(0.97);
+  }
+
+  /* Watermark */
+  .watermark {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: #333;
+    text-transform: uppercase;
+  }
+
+  /* Shake animation */
+  @keyframes nudge {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    5%   { transform: translate(-8px, -4px) rotate(-1.5deg); }
+    10%  { transform: translate(10px, 3px) rotate(1deg); }
+    15%  { transform: translate(-12px, 5px) rotate(-2deg); }
+    20%  { transform: translate(9px, -6px) rotate(1.5deg); }
+    25%  { transform: translate(-7px, 4px) rotate(-1deg); }
+    30%  { transform: translate(11px, -3px) rotate(2deg); }
+    35%  { transform: translate(-9px, 6px) rotate(-1.5deg); }
+    40%  { transform: translate(6px, -4px) rotate(1deg); }
+    50%  { transform: translate(4px, -2px) rotate(0.5deg); }
+    65%  { transform: translate(-2px, 1px) rotate(-0.2deg); }
+    85%  { transform: translate(1px, 0) rotate(0.1deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+
+  @keyframes glitch {
+    0%, 92%, 100% { clip-path: none; transform: none; }
+    93% { clip-path: inset(20% 0 60% 0); transform: translate(-3px, 0); }
+    94% { clip-path: inset(60% 0 10% 0); transform: translate(3px, 0); }
+    95% { clip-path: none; transform: none; }
+    97% { clip-path: inset(40% 0 30% 0); transform: translate(-2px, 0); }
+    98% { clip-path: none; transform: none; }
+  }
+
+  .title { animation: glitch 7s infinite; }
+
+  .wrapper.shaking {
+    animation: nudge 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper" id="wrapper">
+  <div class="title">GREMLIN ORACLE</div>
+  <div class="subtitle">Gambit Edition &nbsp;✦&nbsp; Consult at your own risk</div>
+
+  <div class="ball-container">
+    <div class="ball" id="ball">
+      <div class="window">
+        <div class="answer-text" id="answerText">?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="prompt">
+    <span>tap to consult</span> &nbsp;·&nbsp; shake on mobile
+  </div>
+
+  <div class="watermark">A Gremlin Wrangler Production</div>
+</div>
+
+<script>
+  const answers = [
+    "Feed after midnight\nand ask again.",
+    "The odds are greasy\nbut favourable.",
+    "Tiny chaos says yes.",
+    "Absolutely. Probably.\nMaybe run first.",
+    "The fridge spirits approve.",
+    "Gremlin council shrieks\n\"DO IT.\"",
+    "Signs point to snacks.",
+    "Destiny smells like\nburnt toast.",
+    "Yes, but something\nwill catch fire.",
+    "Ask again after screaming.",
+    "Your future is sticky.",
+    "The answer is\nPlatypus Custard.",
+    "You trust a gremlin?\nREALLY?!",
+    "The answer was stolen.",
+    "Darkness whispers \"maybe.\"",
+    "Highly likely.\nHide valuables.",
+    "A mysterious creature approves.",
+    "The vents say no.",
+    "Proceed with\nreckless confidence.",
+    "The moon owes you a favour.",
+    "Do not trust the duck.",
+    "Fate dropped a spoon.\nUnclear.",
+    "Very yes.\nDangerously yes.",
+    "You already know the answer,\nmeat creature.",
+    "Cosmic forces are busy\nraiding the pantry.",
+    "It will work\nuntil it doesn't.",
+    "Tiny claws give\na thumbs up.",
+    "Even the raccoons agree.",
+    "The prophecy is\ncovered in jam.",
+    "Your odds improve with pizza.",
+    "Never tell the sunlight\nyour plans.",
+    "The answer exploded.\nTry later.",
+    "Ancient goblin wisdom\nsays \"ehhhh.\"",
+    "A terrible idea.\nTherefore irresistible.",
+    "Success is inevitable-ish.",
+    "The dishwasher\nforetells doom.",
+    "Absolutely not.\nUnless funny.",
+    "Reality is wobbling\ntoward yes.",
+    "The sewer oracle approves.",
+    "You will triumph\nin a weird way.",
+    "Too shiny to predict.",
+    "The crumbs align\nin your favour.",
+    "Not today, softskin.",
+    "The answer is\nunder the couch.",
+    "Your future contains\nscreaming and snacks.",
+    "A feral little voice says yes.",
+    "Unclear. Someone licked\nthe crystal ball.",
+    "The vibes are rancid.",
+    "Trust the chaos.",
+    "Never ask a gremlin\nfor legal advice.",
+    "The tiny hands of fate\nare typing…",
+    "Ask again after causing\na minor inconvenience.",
+    "Yes. But dramatically.",
+    "The omens are greasy\nand powerful.",
+    "Forbidden knowledge says no.",
+    "Your destiny has\nraccoon energy.",
+    "The answer arrived\ncovered in glitter.",
+    "Chances are better\nthan the toaster's.",
+    "Hide the evidence\nand proceed.",
+    "Gremlin math says\nthis is 114% possible.",
+    "A distant screech\nmeans good luck.",
+    "You should absolutely not\nbe trusted with this information.",
+    "Nope.",
+    "Hard pass.",
+    "Not today.\nAnd possibly not ever.",
+    "No.",
+    "Respectfully:\nabsolutely not.",
+    "I have considered it.\nStill no.",
+    "Absolutely\nthe hell not.",
+    "Who authorised this?\nRevoke it.",
+    "Outlook: grim.\nVibes: worse.",
+    "The audacity\nof this specific thing.",
+    "Signs point to\nnot a chance in hell.",
+    "Cannot predict now.\nToo busy being disgusted.",
+    "Ask again never.",
+    "Unlikely\nand also who asked.",
+    "Burn it.\nLeave no trace.",
+    "I don't have the words.\nAnd I have ALL the words.",
+    "That thing specifically\ncan go directly to the bin.",
+    "No. No. No.\nAbsolutely no. No.",
+    "The answer\nis a noise\nnot a word.",
+    "I am going to need\na moment\nand a large biscuit."
+  ];
+
+  let lastIndex = -1;
+  let isShaking = false;
+
+  function getAnswer() {
+    let idx;
+    do { idx = Math.floor(Math.random() * answers.length); }
+    while (idx === lastIndex && answers.length > 1);
+    lastIndex = idx;
+    return answers[idx];
+  }
+
+  function shake() {
+    if (isShaking) return;
+    isShaking = true;
+
+    const answerEl = document.getElementById('answerText');
+    const wrapper = document.getElementById('wrapper');
+
+    answerEl.classList.remove('visible');
+
+    wrapper.classList.add('shaking');
+
+    wrapper.addEventListener('animationend', () => {
+      wrapper.classList.remove('shaking');
+
+      answerEl.textContent = getAnswer();
+      answerEl.classList.add('visible');
+
+      isShaking = false;
+    }, { once: true });
+  }
+
+  document.body.addEventListener('click', shake);
+
+  let lastShakeTime = 0;
+  if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', (e) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+      const now = Date.now();
+      if (total > 25 && now - lastShakeTime > 1000) {
+        lastShakeTime = now;
+        shake();
+      }
+    });
+  }
+
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function') {
+    document.body.addEventListener('click', () => {
+      DeviceMotionEvent.requestPermission().catch(() => {});
+    }, { once: true });
+  }
+</script>
+</body>
+</html>
