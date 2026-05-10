@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The F-Ball ✦ After Dark</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --deep: #111111;
+    --acid: #c8f000;
+    --dim-acid: #8aaa00;
+    --red: #ff2e2e;
+    --grey: #2a2a2a;
+    --light-grey: #888;
+    --white: #e8e8e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.4;
+  }
+
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 6rem);
+    letter-spacing: 0.08em;
+    color: var(--acid);
+    line-height: 1;
+    text-shadow: 4px 4px 0 #3a4800, 0 0 40px rgba(200,240,0,0.15);
+    animation: glitch 6s infinite;
+  }
+
+  .subtitle {
+    font-size: 1.0rem;
+    letter-spacing: 0.3em;
+    color: var(--light-grey);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    margin-top: 0.3rem;
+  }
+
+  .ball-container {
+    position: relative;
+    width: clamp(220px, 50vw, 320px);
+    height: clamp(220px, 50vw, 320px);
+  }
+
+  .ball {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #2a2a2a 0%, #111 40%, #000 100%);
+    box-shadow:
+      inset -8px -8px 20px rgba(0,0,0,0.8),
+      inset 4px 4px 12px rgba(255,255,255,0.04),
+      0 0 60px rgba(0,0,0,0.8),
+      0 0 120px rgba(200,240,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.1s;
+  }
+
+  .ball::before {
+    content: '';
+    position: absolute;
+    top: 12%;
+    left: 18%;
+    width: 30%;
+    height: 18%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.07) 0%, transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-35deg);
+  }
+
+  .window {
+    width: 55%;
+    height: 55%;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, #0d1a00 0%, #050d00 60%, #000 100%);
+    border: 2px solid #1a2800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2rem;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 0 15px rgba(200,240,0,0.08);
+  }
+
+  .answer-text {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.5rem, 2.2vw, 0.75rem);
+    color: var(--acid);
+    text-align: center;
+    line-height: 1.5;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    text-shadow: 0 0 10px rgba(200,240,0,0.5);
+    white-space: pre-line;
+  }
+
+  .answer-text.visible {
+    opacity: 1;
+  }
+
+  .prompt {
+    margin-top: 2.5rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    color: var(--light-grey);
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .prompt span {
+    color: var(--dim-acid);
+  }
+
+  /* Intensity badge */
+  .intensity {
+    margin-top: 0.8rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.8rem;
+    border: 1px solid var(--grey);
+    color: var(--light-grey);
+    opacity: 0;
+    transition: opacity 0.4s ease 0.2s, border-color 0.3s, color 0.3s;
+  }
+
+  .intensity.visible { opacity: 1; }
+  .intensity.mild { border-color: #335500; color: #6a9900; }
+  .intensity.medium { border-color: #554400; color: #aa8800; }
+  .intensity.nuclear { border-color: #550000; color: var(--red); }
+
+  @keyframes nudge {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    5%   { transform: translate(-8px, -4px) rotate(-1.5deg); }
+    10%  { transform: translate(10px, 3px) rotate(1deg); }
+    15%  { transform: translate(-12px, 5px) rotate(-2deg); }
+    20%  { transform: translate(9px, -6px) rotate(1.5deg); }
+    25%  { transform: translate(-7px, 4px) rotate(-1deg); }
+    30%  { transform: translate(11px, -3px) rotate(2deg); }
+    35%  { transform: translate(-9px, 6px) rotate(-1.5deg); }
+    40%  { transform: translate(6px, -4px) rotate(1deg); }
+    45%  { transform: translate(-5px, 3px) rotate(-0.5deg); }
+    50%  { transform: translate(4px, -2px) rotate(0.5deg); }
+    60%  { transform: translate(-3px, 1px) rotate(-0.3deg); }
+    70%  { transform: translate(2px, -1px) rotate(0.2deg); }
+    85%  { transform: translate(-1px, 0) rotate(-0.1deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+
+  @keyframes flash {
+    0%, 100% { background: transparent; }
+    10% { background: #0d1200; }
+    20% { background: transparent; }
+    30% { background: #0a1000; }
+  }
+
+  body.shaking {
+    animation: flash 0.5s ease;
+  }
+
+  .wrapper.shaking {
+    animation: nudge 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  .ball:active {
+    transform: scale(0.97);
+  }
+
+  .watermark {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    color: var(--light-grey);
+    text-transform: uppercase;
+  }
+
+  @keyframes glitch {
+    0%, 92%, 100% { clip-path: none; transform: none; }
+    93% { clip-path: inset(20% 0 60% 0); transform: translate(-3px, 0); }
+    94% { clip-path: inset(60% 0 10% 0); transform: translate(3px, 0); }
+    95% { clip-path: none; transform: none; }
+    97% { clip-path: inset(40% 0 30% 0); transform: translate(-2px, 0); }
+    98% { clip-path: none; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper" id="wrapper">
+  <div class="title">THE F-BALL</div>
+  <div class="subtitle">After Dark Edition &nbsp;✦&nbsp; A Gambit Production</div>
+
+  <div class="ball-container">
+    <div class="ball" id="ball">
+      <div class="window">
+        <div class="answer-text" id="answerText">?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="intensity" id="intensity"></div>
+  <div class="prompt">
+    <span>tap to consult</span> &nbsp;·&nbsp; shake on mobile
+  </div>
+</div>
+
+<div class="watermark">A Gremlin Wrangler Production</div>
+
+<script>
+  const answers = [
+    { text: "Fuck This", tier: "mild" },
+    { text: "Fuck That", tier: "mild" },
+    { text: "Fuck Me", tier: "mild" },
+    { text: "Fuck You", tier: "mild" },
+    { text: "Fuck Off", tier: "mild" },
+    { text: "Go Fuck Yourself.\nSideways.", tier: "medium" },
+    { text: "Fuck Up", tier: "mild" },
+    { text: "Fuck It", tier: "mild" },
+    { text: "Fuck That Thing\nIn Particular", tier: "mild" },
+    { text: "Fuck No", tier: "mild" },
+    { text: "Fuck YES", tier: "mild" },
+    { text: "Fuck Yeah!", tier: "mild" },
+    { text: "Fuck Me Sideways", tier: "medium" },
+    { text: "Absolutely Fuckin' NOT.", tier: "medium" },
+    { text: "Don't You Fuckin' DARE.", tier: "medium" },
+    { text: "Fuck It All To Bits", tier: "medium" },
+    { text: "Fuck Them", tier: "mild" },
+    { text: "Fuck The Lot Of Them", tier: "medium" },
+    { text: "Fuck 'Em All", tier: "medium" },
+    { text: "Fuck All These Things", tier: "medium" },
+    { text: "Fuck Those Things", tier: "mild" },
+    { text: "Fuck It All", tier: "mild" },
+    { text: "Fuck Yes", tier: "mild" },
+    { text: "Fuckin' Maybe", tier: "mild" },
+    { text: "Fuck Around", tier: "mild" },
+    { text: "Fuck Outta Here", tier: "mild" },
+    { text: "Fuck Right Off", tier: "mild" },
+    { text: "Fuckin' Probably", tier: "mild" },
+    { text: "Fuckin' Nope", tier: "mild" },
+    { text: "Fuckin' Absolutely", tier: "mild" },
+    { text: "AbsoFuckinglutely", tier: "mild" },
+    { text: "Fuckin' Doubtful", tier: "mild" },
+    { text: "Fuckin' Try It", tier: "mild" },
+    { text: "Fuckin' Send It", tier: "mild" },
+    { text: "Fuckin' Coward", tier: "mild" },
+    { text: "Fuckin' Legend", tier: "mild" },
+    { text: "Fuckin' Disaster", tier: "mild" },
+    { text: "Fuckin' Typical", tier: "mild" },
+    { text: "Fuckin' Knew It", tier: "mild" },
+    { text: "Fuckin' Figures", tier: "mild" },
+    { text: "Fuckin' Finally", tier: "mild" },
+    { text: "Fuckin' Why Though?", tier: "mild" },
+    { text: "Fuckin' Ask Again", tier: "mild" },
+        { text: "Don't Fuckin'\nAsk Again", tier: "mild" },
+    { text: "Fuckin' Don't", tier: "mild" },
+    { text: "Fuckin' Do It", tier: "mild" },
+    { text: "Fuckin' Regret", tier: "mild" },
+    { text: "Fuckin' Run", tier: "mild" },
+    { text: "Fuckin' Hide", tier: "mild" },
+    { text: "Fuckin' Relax", tier: "mild" },
+    { text: "Fuckin' Breathe", tier: "mild" },
+    { text: "Fuckin' Chaos", tier: "mild" },
+    { text: "Fuckin' Gremlin Energy", tier: "mild" },
+    { text: "Fuckin' Cursed", tier: "mild" },
+    { text: "Fuckin' Blessed", tier: "mild" },
+    { text: "Fuckin' Unclear", tier: "mild" },
+    { text: "Fuckin' Impossible", tier: "mild" },
+    { text: "Fuckin' Likely", tier: "mild" },
+    { text: "Fuckin' Unlikely", tier: "mild" },
+    { text: "Fuckin' Not Today", tier: "mild" },
+    { text: "Fuckin' Tomorrow Maybe", tier: "mild" },
+    { text: "Fuckin' Never", tier: "mild" },
+    { text: "Fuckin' Forever", tier: "mild" },
+    { text: "Fuckin' Soon", tier: "mild" },
+    { text: "Fuckin' Eventually", tier: "mild" },
+    { text: "Fuckin' Ominous", tier: "mild" },
+    { text: "Fuckin' Concerning", tier: "mild" },
+    { text: "Fuckin' Hilarious", tier: "mild" },
+    { text: "Fuckin' Embarrassing", tier: "mild" },
+    { text: "Fuckin' Mortifying", tier: "medium" },
+    { text: "Fuckin' Bold Choice", tier: "mild" },
+    { text: "Fuckin' Bad Idea", tier: "mild" },
+    { text: "Fuckin' Great Idea", tier: "mild" },
+    { text: "Fuckin' Magictastical", tier: "mild" },
+    { text: "Fuckin' Magnificent", tier: "mild" },
+    { text: "Fuckin' Illegal Probably", tier: "medium" },
+    { text: "Fuckin' Haunted", tier: "mild" },
+    { text: "Fuckin' Possessed", tier: "mild" },
+    { text: "Fuckin' Delicious", tier: "mild" },
+    { text: "Fuckin' Suspicious", tier: "mild" },
+    { text: "Fuckin' Questionable", tier: "mild" },
+    { text: "Fuckin' Disturbing", tier: "mild" },
+    { text: "Fuckin' Amazing", tier: "mild" },
+    { text: "Fuckin' Pathetic", tier: "mild" },
+    { text: "Fuckin' Heroic", tier: "mild" },
+    { text: "Fuckin' Mediocre", tier: "mild" },
+    { text: "Fuckin' Fine I Guess", tier: "mild" },
+    { text: "Fuckin' Roll The Dice", tier: "mild" },
+    { text: "Fuckin' Gamble", tier: "mild" },
+    { text: "Fuckin' Bet", tier: "mild" },
+    { text: "Fuckin' Risky", tier: "mild" },
+    { text: "Fuckin' Worth It", tier: "mild" },
+    { text: "Fuckin' Not Worth It", tier: "mild" },
+    { text: "Fuckin' Eat The Rich", tier: "medium" },
+    { text: "Fuckin' Touch Grass", tier: "mild" },
+    { text: "Fuckin' Drink Water", tier: "mild" },
+    { text: "Fuckin' Go Outside", tier: "mild" },
+    { text: "Fuckin' Stay Inside", tier: "mild" },
+    { text: "Fuckin' Nap Time", tier: "mild" },
+    { text: "Fuckin' Snack First", tier: "mild" },
+    { text: "Fuckin' Coffee Required", tier: "mild" },
+    { text: "Fuckin' More Grease Needed", tier: "mild" },
+    { text: "Fuckin' Gremlin Approved", tier: "mild" },
+    { text: "Fuckin' Gremlin Denied", tier: "mild" },
+    { text: "Fuckin' Tiny Violin", tier: "mild" },
+    { text: "Fuckin' Skill Issue", tier: "mild" },
+    { text: "Fuckin' Plot Twist", tier: "mild" },
+    { text: "Fuckin' Main Character", tier: "mild" },
+    { text: "Fuckin' Side Quest", tier: "mild" },
+    { text: "Fuckin' Boss Fight", tier: "mild" },
+    { text: "Fuckin' Game Over", tier: "mild" },
+    { text: "Fuckin' Respawn", tier: "mild" },
+    { text: "Fuckin' Critical Hit", tier: "mild" },
+    { text: "Fuckin' Emotional Damage", tier: "mild" },
+    { text: "Fuckin' Clown Shoes", tier: "mild" },
+    { text: "Fuckin' Yikes", tier: "mild" },
+    { text: "Fuckin' Big Yikes", tier: "medium" },
+    { text: "Fuckin' Ultra Yikes", tier: "nuclear" },
+    { text: "Fuckin' Cringe", tier: "mild" },
+    { text: "Fuckin' Based", tier: "mild" },
+    { text: "Fuckin' Cursed Timeline", tier: "medium" },
+    { text: "Fuckin' Alternate Reality", tier: "mild" },
+    { text: "Fuckin' Don't Ask Me", tier: "mild" },
+    { text: "Fuckin' Dunno", tier: "mild" },
+    { text: "Fuckin' Read The Room", tier: "mild" },
+    { text: "Fuckin' Read The Manual", tier: "mild" },
+    { text: "Fuckin' Burn It Down", tier: "nuclear" },
+    { text: "Fuckin' Build It Bigger", tier: "mild" },
+    { text: "Fuckin' Needs More Duct Tape", tier: "mild" },
+    { text: "Fuckin' Needs More Fire", tier: "medium" },
+    { text: "Fuckin' Needs Less Fire", tier: "medium" },
+    { text: "The Fuckin' Audacity", tier: "medium" },
+    { text: "The Fuckin' Nerve", tier: "medium" },
+    { text: "Who The Fuck Asked", tier: "medium" },
+    { text: "Fuckin' Nobody Knows", tier: "mild" },
+    { text: "Fuckin' Ancient Curse Says Yes", tier: "medium" },
+    { text: "Fuckin' Stars Say No", tier: "mild" },
+    { text: "Fuckin' Moon's Haunted", tier: "mild" },
+    { text: "The Fuckin' Vibes Are Bad", tier: "medium" },
+    { text: "The Fuckin' Vibes Are Immaculate", tier: "mild" },
+    { text: "Fuckin' Cosmic Bullshit", tier: "medium" },
+    { text: "Fuckin' Reality Is Fragile", tier: "medium" },
+    { text: "Fuckin' Time Is Fake", tier: "mild" },
+    { text: "Fuckin' Taxes Await", tier: "medium" },
+    { text: "Fuckin' Nice Try", tier: "mild" },
+    { text: "Absolutely Fuckin' Not", tier: "medium" },
+    { text: "Over My Dead Fuckin' Body", tier: "nuclear" },
+    { text: "Fuckin' Send Noodles", tier: "mild" },
+    { text: "Fuckin' Feed Me First", tier: "mild" },
+    { text: "Fuckin' Bite Someone", tier: "medium" },
+    { text: "Start Fuckin' Screaming", tier: "medium" },
+    { text: "Fuckin' Tiny Crimes", tier: "mild" },
+    { text: "Be Fuckin' Unhinged", tier: "medium" },
+    { text: "Stay Fuckin' Feral", tier: "medium" },
+    { text: "Chaos Fuckin' Wins", tier: "medium" },
+    { text: "We Fuckin' Ball", tier: "mild" },
+    { text: "Full Fuckin' Goblin Mode", tier: "medium" },
+    { text: "Fuckin' Bad Omen", tier: "medium" },
+    { text: "Fuckin' Good Soup", tier: "mild" },
+    { text: "Fuckin' Honk Honk", tier: "mild" },
+    { text: "Fuckin' This Again", tier: "mild" },
+    { text: "You Fuckin' Did This", tier: "medium" },
+    { text: "I Fuckin' Blame Steve", tier: "mild" },
+    { text: "Don't Fuckin' Blame Me", tier: "mild" },
+    { text: "Blame The Fuckin' Moon", tier: "mild" },
+    { text: "Fuckin' Certified Mess", tier: "medium" },
+    { text: "Fuckin' Peak Nonsense", tier: "medium" },
+    { text: "Fuckin' Catastrophic Success", tier: "medium" },
+    { text: "Fuckin' Beautiful Disaster", tier: "medium" },
+    { text: "Fuckin' Smells Weird", tier: "mild" },
+    { text: "Fuckin' Lick It And See", tier: "medium" },
+    { text: "Press The Fuckin' Button", tier: "medium" },
+    { text: "Don't Press The Fuckin' Button", tier: "nuclear" },
+    { text: "Too Fuckin' Late", tier: "nuclear" },
+    { text: "Fuckin' Consequences", tier: "nuclear" },
+    { text: "Accept Your Fuckin' Fate", tier: "nuclear" },
+    { text: "Fuckin' Embrace The Weird", tier: "mild" },
+    { text: "Fuckin' Reality Check", tier: "medium" },
+    { text: "Fuckin' One More Time", tier: "mild" },
+    { text: "Last Fuckin' Warning", tier: "nuclear" },
+    { text: "Fuckin' No Survivors", tier: "nuclear" },
+    { text: "We're Fuckin' Doing This", tier: "medium" },
+    { text: "Against All Fuckin' Logic", tier: "medium" },
+    { text: "Fuckin' Spite Powered", tier: "medium" },
+    { text: "Pure Fuckin' Malice", tier: "nuclear" },
+    { text: "Fuckin' Tiny Hat Required", tier: "mild" },
+    { text: "Needs More Fuckin' Gremlins", tier: "mild" },
+    { text: "Ask The Fuckin' Duck", tier: "mild" },
+    { text: "Consult The Fuckin' Frog", tier: "mild" },
+    { text: "Fuckin' Bone Dice Say Yes", tier: "medium" },
+    { text: "Fuckin' Magic Says Nope", tier: "mild" },
+    { text: "The Fuckin' Rats Approve", tier: "medium" },
+    { text: "Fuckin' Dumpster Wisdom", tier: "mild" },
+    { text: "Fuckin' Forbidden Knowledge", tier: "medium" },
+    { text: "Fuckin' Unholy Confidence", tier: "medium" },
+    { text: "Fuckin' Reckless Optimism", tier: "mild" },
+    { text: "Fuckin' Doom Approaches", tier: "nuclear" },
+    { text: "Fortune Favours Fuckin' Idiots", tier: "medium" },
+    { text: "Oh, Fuckin' Cry About It", tier: "medium" },
+    { text: "Oh, Fuckin' Deal With It", tier: "medium" },
+    { text: "Live, Laugh, Fuckin' Suffer", tier: "nuclear" },
+    { text: "Behold The Fuckin' Consequences", tier: "nuclear" },
+    { text: "Probably Fuckin' Fine", tier: "mild" },
+    { text: "Holy Fuckin' Balls", tier: "mild" },
+    { text: "Fuckin' Terminally Silly", tier: "mild" },
+    { text: "Maximum Fuckin' Shenanigans", tier: "medium" },
+    { text: "Absolute Fuckin' Carnage", tier: "nuclear" },
+    { text: "Tiny Fuckin' Apocalypse", tier: "nuclear" },
+    { text: "Certified Fuckin' Gremlin Moment", tier: "medium" },
+    { text: "Not My Fuckin' Problem", tier: "mild" },
+    { text: "Above My Fuckin' Paygrade", tier: "mild" },
+    { text: "Fuckin' Spectacular", tier: "mild" },
+    { text: "Fuckin' Shitbags,\nThe Lot Of Them", tier: "medium" },
+    { text: "Fuck Off Out Already", tier: "medium" },
+    { text: "Stay The Fuck Home", tier: "mild" },
+    { text: "Eat The Fuckin' Cake", tier: "mild" },
+    { text: "Eat Their Fuckin' Cake", tier: "medium" },
+    { text: "Just Fuckin' Do It Already", tier: "medium" },
+    { text: "Seriously.\nJust Fuckin' Don't.", tier: "medium" },
+    { text: "I'm Not Payin' Your\nFuckin' Bail If You Do", tier: "nuclear" },
+    { text: "Just Don't Get\nFuckin' Caught", tier: "nuclear" },
+    { text: "I'm No Fuckin' Lawyer.\nYou Need One.", tier: "nuclear" },
+    { text: "Fuckin' Savage", tier: "medium" },
+    { text: "Fuckin' Gremlin", tier: "mild" },
+    { text: "Fucknugget", tier: "medium" },
+    { text: "Fuckwomble", tier: "medium" },
+    { text: "Fuckwit", tier: "medium" },
+    { text: "Fucknozzle", tier: "medium" },
+    { text: "Fuckpuddle", tier: "medium" },
+    { text: "Fuckmuppet", tier: "medium" },
+    { text: "Fuckin' Dennis Did This", tier: "nuclear" },
+    { text: "What The Fuck\nWere You Thinking", tier: "nuclear" },
+    { text: "Fuckin' Unhinged But Correct", tier: "medium" },
+    { text: "Fuckin' Outstanding Move", tier: "mild" },
+    { text: "Fuckin' Deeply Unwell", tier: "medium" },
+    { text: "Fuckin' Structurally Unsound", tier: "nuclear" },
+    { text: "Fuckin' Legally Questionable", tier: "nuclear" },
+    { text: "Fuck Nope.", tier: "mild" },
+    { text: "Hard Fuckin' Pass.", tier: "mild" },
+    { text: "Not Fuckin' Today.\nAnd Possibly Not Ever.", tier: "mild" },
+    { text: "No.Just \nFuckin' No", tier: "mild" },
+    { text: "Respectfully:\nAbsolutely\nFuckin' Not.", tier: "mild" },
+    { text: "I've Considered It.\nStill Fuck No.", tier: "mild" },
+    { text: "Absolutely\nthe Fuck Not.", tier: "medium" },
+    { text: "Who Authorised This?\nFuckin' Revoke it.", tier: "medium" },
+    { text: "Outlook: Grim.\nVibes: Fuckin' Worse.", tier: "medium" },
+    { text: "The audacity\nof this Fuckin' Thing.", tier: "medium" },
+    { text: "Signs Point to\nNot a chance in Fuck.", tier: "medium" },
+    { text: "Cannot Predict now.\nFuck Off Out Of It.", tier: "medium" },
+    { text: "Ask again Fuckin' never.", tier: "medium" },
+    { text: "Unlikely\nand also who asked.", tier: "medium" },
+    { text: "Burn it.\nLeave no trace.", tier: "nuclear" },
+    { text: "I Don't Have Fuckin' Words.\nAnd I Have ALL The Words.", tier: "nuclear" },
+    { text: "That Thing Specifically\nCan Go Fuck Off.", tier: "nuclear" },
+    { text: "No. No. No.\nAbsolutely No. No.", tier: "nuclear" },
+    { text: "The Answer\nIs a Fuckin' Noise\nNot a Word.", tier: "nuclear" },
+    { text: "I am Going to Need\nA Moment\nand a Fuckin' biscuit.", tier: "nuclear" },
+  ];
+
+  const tierLabels = {
+    mild: "Mild Disdain",
+    medium: "Full Refusal",
+    nuclear: "Nuclear Option"
+  };
+
+  let lastIndex = -1;
+  let isShaking = false;
+
+  function getAnswer() {
+    let idx;
+    do { idx = Math.floor(Math.random() * answers.length); }
+    while (idx === lastIndex && answers.length > 1);
+    lastIndex = idx;
+    return answers[idx];
+  }
+
+  function shake() {
+    if (isShaking) return;
+    isShaking = true;
+
+    const answerEl = document.getElementById('answerText');
+    const intensityEl = document.getElementById('intensity');
+    const wrapper = document.getElementById('wrapper');
+
+    answerEl.classList.remove('visible');
+    intensityEl.classList.remove('visible', 'mild', 'medium', 'nuclear');
+
+    wrapper.classList.add('shaking');
+    document.body.classList.add('shaking');
+
+    wrapper.addEventListener('animationend', () => {
+      wrapper.classList.remove('shaking');
+      document.body.classList.remove('shaking');
+
+      const result = getAnswer();
+      answerEl.textContent = result.text;
+      answerEl.classList.add('visible');
+
+      intensityEl.textContent = tierLabels[result.tier];
+      intensityEl.classList.add('visible', result.tier);
+
+      isShaking = false;
+    }, { once: true });
+  }
+
+  document.body.addEventListener('click', shake);
+
+  let lastShakeTime = 0;
+  if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', (e) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+      const now = Date.now();
+      if (total > 25 && now - lastShakeTime > 1000) {
+        lastShakeTime = now;
+        shake();
+      }
+    });
+  }
+
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function') {
+    document.body.addEventListener('click', () => {
+      DeviceMotionEvent.requestPermission().catch(() => {});
+    }, { once: true });
+  }
+</script>
+</body>
+</html>
